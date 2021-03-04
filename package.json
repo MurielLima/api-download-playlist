@@ -1,0 +1,33 @@
+{
+  "name": "node-with-ts",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/app.js",
+  "scripts": {
+    "start": "ts-node-dev   --inspect --ignore-watch node_modules src/shared/infra/http/server.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/express": "^4.16.1",
+    "ts-node-dev": "^1.1.6",
+    "tslint": "^5.12.1",
+    "typescript": "^3.3.3"
+  },
+  "dependencies": {
+    "@types/multer": "^1.4.5",
+    "@types/nodemailer": "^6.4.0",
+    "axios": "^0.21.1",
+    "axios-retry": "^3.1.9",
+    "express": "^4.16.4",
+    "express-async-errors": "^3.1.1",
+    "fs": "0.0.1-security",
+    "handlebars": "^4.7.7",
+    "multer": "^1.4.2",
+    "nodemailer": "^6.5.0",
+    "reflect-metadata": "^0.1.13",
+    "tsyringe": "^4.4.0",
+    "uri-js": "^4.4.1"
+  }
+}
