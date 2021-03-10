@@ -4,8 +4,11 @@ import express from 'express';
 import AppError from '../../errors/AppError';
 import { Request, Response, NextFunction } from 'express';
 import 'express-async-errors';
+import * as dotenv from 'dotenv';
 import youtubeRouter from '../../../modules/youtube/infra/http/routes/youtube.routes';
+import YoutubeController from '@modules/youtube/infra/http/controllers/YoutubeController';
 
+dotenv.config();
 const routes = Router();
 const app = express();
 app.use(express.json());
@@ -23,7 +26,7 @@ app.use(
       return response.status(err.statusCode).json({
         status: 'error',
         message: err.message,
-        detail:err.detail
+        detail: err.detail
       });
     }
 
@@ -33,5 +36,3 @@ app.use(
     });
   },
 );
-
-

@@ -4,7 +4,8 @@ import { container, injectable } from 'tsyringe';
 import * as URI from 'uri-js';
 import axiosRetry from 'axios-retry';
 
-import AppError from "../../../shared/errors/AppError";
+import AppError from "../../../../shared/errors/AppError";
+import NormalizeTitleService from "../utils/NormalizeTitleService";
 
 interface IDownloadFormat {
     formatExt: string,
@@ -19,19 +20,21 @@ interface IMovieDetail {
     formatAlias?: string,
     tag: number,
     metaKey: string,
+    thumbnail?: string,
     downloadInfoList: IDownloadFormat[],
 }
 interface IMovie {
     videoInfo: IMovieDetail
 }
 
-const URL_API_SNAPPEA = process.env.URL_API_SNAPPEA || 'https://api.snappea.com/v1/video';
 @injectable()
 class DownloadMovieService {
-    public constructor(){
-        axiosRetry(axios, {retries:3, retryDelay:(retryCount)=>  retryCount*5});
+    private URL_API_SNAPPEA = process.env.URL_API_SNAPPEA || 'https://api.snappea.com/v1/video';
+    private PATH_DOWNLOAD = process.env.PATH_DOWNLOAD;
+    public constructor() {
+        axiosRetry(axios, { retries: 3, retryDelay: (retryCount) => retryCount * 5 });
     }
-    public async execute(urlMovie: string): Promise<void> {
+    public async execute(urlMovie: string): Promise<string> {
         if (!urlMovie)
             throw new AppError('Informe a URL do vídeo!');
 
@@ -46,7 +49,8 @@ class DownloadMovieService {
         let convert = await this.convert(infoMovie)
         if (!convert)
             throw new AppError('Não foi possível converter seu vídeo para o formato pedido.');
-        await this.downloadMp3(convert, infoMovie);
+
+        return await this.downloadMp3(convert, infoMovie);
     }
     private async searchMovie(urlMovie: string): Promise<IMovie> {
         let config = {
@@ -54,7 +58,7 @@ class DownloadMovieService {
                 url: urlMovie
             }
         }
-        let movie = await axios.get(`${URL_API_SNAPPEA}/details`, config)
+        let movie = await axios.get(`${this.URL_API_SNAPPEA}/details`, config)
             .then((response) => {
                 return response.data;
             }).catch(err => {
@@ -72,7 +76,7 @@ class DownloadMovieService {
                 return movie;
         });
         if (!movies)
-            throw new AppError('Não foi possível converter seu vídeo para o formato mp3.');
+            throw new AppError(`Não foi possível converter seu vídeo para o formato ${formatExt}.`);
         movies = movies.sort((a, b) => {
 
             if (parseInt(a.formatAlias) < parseInt(b.formatAlias))
@@ -88,7 +92,8 @@ class DownloadMovieService {
             urlMp3: movies[0].partList[0].urlList[0],
             tag: movies[0].tag,
             metaKey: movieDetail.metaKey,
-            downloadInfoList: movies
+            downloadInfoList: movies,
+            formatExt
         };
     }
     private async convert(movieDetail: IMovieDetail): Promise<string> {
@@ -96,7 +101,7 @@ class DownloadMovieService {
             tagId: movieDetail.tag,
             url: movieDetail.urlMp3
         }
-        let convert = await axios.post(`${URL_API_SNAPPEA}/convert?videoKey=${movieDetail.metaKey}`, JSON.stringify(data), { headers: { 'Content-Type': 'application/json' } })
+        let convert = await axios.post(`${this.URL_API_SNAPPEA}/convert?videoKey=${movieDetail.metaKey}`, JSON.stringify(data), { headers: { 'Content-Type': 'application/json' } })
             .then(response => {
                 return response.data.downloadUrl;
             }).catch(err => {
@@ -104,38 +109,24 @@ class DownloadMovieService {
             });
         return URI.serialize(URI.parse(convert));
     }
-    private async downloadMp3(urlDownload: string, movieDetail: IMovieDetail): Promise<void> {
+    private async downloadMp3(urlDownload: string, movieDetail: IMovieDetail): Promise<string> {
+        console.log(`Baixando a música ${movieDetail.title}.`);
         let download = await axios.get(urlDownload, { responseType: "arraybuffer" })
             .then((response) => {
                 return response.data;
             }).catch(err => {
-                console.error(err.response||err);
+                console.error(err.response || err);
             });
-
         if (!download) {
             throw new AppError(`Não foi possível realizar o download do seu arquivo. - (${movieDetail.title}.mp3)`);
         }
-        fs.writeFileSync(`C:/Data/mp3/${this.normalizeTitle(movieDetail.title)}.mp3`, download);
-
         console.log(`Salvando a música ${movieDetail.title}.`);
-    }
-    private normalizeTitle(title:string){
-        // title = title.replace(/\&/g,'e').replace(/[\.\,\;\:]+/g,'')
-        // title = title.replace(/\-/g,' ').replace(/\ /g, '-');
-        title = title.replace(/\ {2,}/g, ' ').replace(/[\"\|\/\?]+/g,'');
-        title = title.replace(/\//g,'');
-        title = this.removeAcento(title).trim();
-        return title;
-    }
-    private removeAcento (text : string)
-    {       
-        text = text.replace(new RegExp('[ÁÀÂÃ]','gi'), 'a');
-        text = text.replace(new RegExp('[ÉÈÊ]','gi'), 'e');
-        text = text.replace(new RegExp('[ÍÌÎ]','gi'), 'i');
-        text = text.replace(new RegExp('[ÓÒÔÕ]','gi'), 'o');
-        text = text.replace(new RegExp('[ÚÙÛ]','gi'), 'u');
-        text = text.replace(new RegExp('[Ç]','gi'), 'c');
-        return text;                 
+        const normalizeTitle = container.resolve(
+            NormalizeTitleService);
+        let url = `${this.PATH_DOWNLOAD}/${normalizeTitle.execute(movieDetail.title)}.${movieDetail.formatExt}`;
+        fs.writeFileSync(url, download);
+
+        return url;
     }
 }
 export default DownloadMovieService;
