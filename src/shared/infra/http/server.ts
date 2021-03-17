@@ -3,19 +3,19 @@ import { Router } from 'express';
 import express from 'express';
 import AppError from '../../errors/AppError';
 import { Request, Response, NextFunction } from 'express';
+import cors from 'cors';
 import 'express-async-errors';
 import * as dotenv from 'dotenv';
 import youtubeRouter from '../../../modules/youtube/infra/http/routes/youtube.routes';
-import YoutubeController from '@modules/youtube/infra/http/controllers/YoutubeController';
 
 dotenv.config();
-const routes = Router();
 const app = express();
 app.use(express.json());
+app.use(cors());
 
 app.use('/youtube', youtubeRouter);
-app.listen(3333, () => {
-  console.log('Server started on port 3333!');
+app.listen(3030, () => {
+  console.log('Server started on port 3030!');
 });
 app.get('/', (request: Request, response: Response) => {
   return response.json({ message: 'Hello World' });
