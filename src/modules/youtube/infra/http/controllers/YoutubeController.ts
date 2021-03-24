@@ -4,7 +4,7 @@ import { container } from 'tsyringe';
 
 import DownloadService from '../../../services/DownloadService';
 import ZipDataService from '../../../providers/zip/ZipDataService';
-import ListMoviesService, {IItem} from '../../../services/ListMoviesService';
+import ListMoviesService, {IMovie} from '../../../services/ListMoviesService';
 interface IRequest extends Request{
   query :{list?:string;}
 }
@@ -36,8 +36,8 @@ export default class ProfileController {
     const {url}  = request.body;
     const listMoviesService = container.resolve(
       ListMoviesService);
-    let movies : IItem[] = [];
-     movies = await listMoviesService.execute(`https://www.youtube.com/watch?list=${url}`);
+    let movies : IMovie[] = [];
+     movies = await listMoviesService.execute(url);
 
     return response.status(200).json(movies);
   }
